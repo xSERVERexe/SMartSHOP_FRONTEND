@@ -5,3 +5,10 @@ export interface Product {
   price: number;
   categoryName: string;
 }
+
+export interface CreateProductRequest {
+  name: string;
+  description: string;
+  price: number;
+  categoryId: number;
+}
