@@ -3,6 +3,7 @@ import { CurrencyPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ProductService } from './services/product.service';
 import { CategoryService } from './services/category.service';
+import { AuthService } from './services/auth.service';
 import { CreateProductRequest, Product } from './models/product.model';
 import { Category } from './models/category.model';
 
@@ -16,11 +17,16 @@ export class App implements OnInit {
   private productService = inject(ProductService);
   private categoryService = inject(CategoryService);
   private fb = inject(FormBuilder);
+  authService = inject(AuthService);
 
   products = signal<Product[]>([]);
   categories = signal<Category[]>([]);
   isLoading = signal<boolean>(true);
   error = signal<string | null>(null);
+
+  isLoginOpen = signal<boolean>(false);
+  isLoggingIn = signal<boolean>(false);
+  loginError = signal<string | null>(null);
 
   isFormOpen = signal<boolean>(false);
   isSubmitting = signal<boolean>(false);
@@ -29,6 +35,11 @@ export class App implements OnInit {
 
   searchQuery = signal<string>('');
   selectedCategory = signal<string>('ALL');
+
+  loginForm = this.fb.nonNullable.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required]],
+  });
 
   productForm = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
@@ -94,13 +105,54 @@ export class App implements OnInit {
       },
       error: (err) => {
         console.error('Błąd pobierania produktów:', err);
-        this.error.set('Nie udało się pobrać produktów.');
+        this.error.set('Nie udało się pobrać produktów. Sprawdź, czy backend jest uruchomiony.');
         this.isLoading.set(false);
       },
     });
   }
 
+  toggleLoginPanel(): void {
+    this.loginError.set(null);
+    this.isLoginOpen.update((open) => !open);
+  }
+
+  onLoginSubmit(): void {
+    this.loginError.set(null);
+    if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
+      return;
+    }
+
+    const { email, password } = this.loginForm.getRawValue();
+    this.isLoggingIn.set(true);
+
+    this.authService.login(email.trim(), password).subscribe({
+      next: (res) => {
+        this.isLoggingIn.set(false);
+        this.isLoginOpen.set(false);
+        this.loginForm.reset();
+        this.successMessage.set(`Zalogowano jako administrator (${res.email}).`);
+      },
+      error: (err) => {
+        console.error('Błąd logowania:', err);
+        this.loginError.set(err?.error?.message ?? 'Nieprawidłowy e-mail lub hasło.');
+        this.isLoggingIn.set(false);
+      },
+    });
+  }
+
+  logout(): void {
+    this.authService.logout();
+    this.isFormOpen.set(false);
+    this.submitError.set(null);
+    this.successMessage.set('Wylogowano z konta administratora.');
+  }
+
   toggleForm(): void {
+    if (!this.authService.isAdmin()) {
+      this.isLoginOpen.set(true);
+      return;
+    }
     this.submitError.set(null);
     this.isFormOpen.update((open) => !open);
   }
@@ -142,9 +194,13 @@ export class App implements OnInit {
       },
       error: (err) => {
         console.error('Błąd dodawania produktu:', err);
-        this.submitError.set(
-          err?.error?.message ?? 'Nie udało się dodać produktu. Sprawdź poprawność danych.',
-        );
+        if (err?.status === 401 || err?.status === 403) {
+          this.submitError.set('Brak autoryzacji administratora. Zaloguj się ponownie.');
+        } else {
+          this.submitError.set(
+            err?.error?.message ?? 'Nie udało się dodać produktu. Sprawdź poprawność danych.',
+          );
+        }
         this.isSubmitting.set(false);
       },
     });
