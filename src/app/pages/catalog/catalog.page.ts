@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ProductService } from '../../services/product.service';
@@ -28,6 +28,9 @@ export class CatalogPage implements OnInit {
 
   searchQuery = signal<string>('');
   selectedCategory = signal<string>('ALL');
+
+  readonly pageSize = 6;
+  currentPage = signal<number>(1);
 
   isFormOpen = signal<boolean>(false);
   editingProductId = signal<number | null>(null);
@@ -67,6 +70,36 @@ export class CatalogPage implements OnInit {
       return matchesCategory && matchesQuery;
     });
   });
+
+  totalPages = computed<number>(() => {
+    const count = this.filteredProducts().length;
+    return Math.max(1, Math.ceil(count / this.pageSize));
+  });
+
+  pageNumbers = computed<number[]>(() => {
+    return Array.from({ length: this.totalPages() }, (_, idx) => idx + 1);
+  });
+
+  pagedProducts = computed<Product[]>(() => {
+    const safePage = Math.min(Math.max(1, this.currentPage()), this.totalPages());
+    const start = (safePage - 1) * this.pageSize;
+    return this.filteredProducts().slice(start, start + this.pageSize);
+  });
+
+  constructor() {
+    effect(() => {
+      this.searchQuery();
+      this.selectedCategory();
+      this.currentPage.set(1);
+    });
+
+    effect(() => {
+      const maxPage = this.totalPages();
+      if (this.currentPage() > maxPage) {
+        this.currentPage.set(maxPage);
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.loadCategories();
@@ -196,6 +229,12 @@ export class CatalogPage implements OnInit {
         this.error.set(err?.error?.message ?? 'Nie udało się usunąć produktu.');
       },
     });
+  }
+
+  goToPage(page: number): void {
+    const target = Math.min(Math.max(1, page), this.totalPages());
+    this.currentPage.set(target);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   onSearchChange(event: Event): void {
