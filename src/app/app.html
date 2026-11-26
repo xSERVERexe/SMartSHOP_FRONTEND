@@ -12,7 +12,7 @@
           </span>
           <button
             type="button"
-            (click)="toggleForm()"
+            (click)="isFormOpen() ? closeProductForm() : openCreateForm()"
             class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
           >
             {{ isFormOpen() ? 'Zamknij formularz' : '+ Dodaj produkt' }}
@@ -106,13 +106,21 @@
       </div>
     }
 
+    @if (!isFormOpen() && submitError()) {
+      <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 text-sm">
+        {{ submitError() }}
+      </div>
+    }
+
     @if (authService.isAdmin() && isFormOpen()) {
       <form
         [formGroup]="productForm"
         (ngSubmit)="onSubmit()"
         class="bg-white rounded-xl border border-gray-200 p-6 mb-6 shadow-sm space-y-4"
       >
-        <h2 class="text-lg font-bold text-gray-900">Nowy produkt</h2>
+        <h2 class="text-lg font-bold text-gray-900">
+          {{ editingProductId() !== null ? 'Edycja produktu' : 'Nowy produkt' }}
+        </h2>
 
         @if (submitError()) {
           <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
@@ -182,7 +190,7 @@
         <div class="flex items-center justify-end gap-3 pt-2">
           <button
             type="button"
-            (click)="toggleForm()"
+            (click)="closeProductForm()"
             class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition"
           >
             Anuluj
@@ -192,7 +200,13 @@
             [disabled]="isSubmitting()"
             class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg transition"
           >
-            {{ isSubmitting() ? 'Zapisywanie...' : 'Zapisz produkt' }}
+            {{
+              isSubmitting()
+                ? 'Zapisywanie...'
+                : editingProductId() !== null
+                  ? 'Zapisz zmiany'
+                  : 'Zapisz produkt'
+            }}
           </button>
         </div>
       </form>
@@ -261,10 +275,33 @@
             class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col justify-between"
           >
             <div>
-              <span class="text-xs font-semibold uppercase tracking-wider text-blue-600">
-                {{ product.categoryName }}
-              </span>
-              <h2 class="text-xl font-bold text-gray-800 mt-1">{{ product.name }}</h2>
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-blue-600">
+                  {{ product.categoryName }}
+                </span>
+
+                @if (authService.isAdmin()) {
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      (click)="startEdit(product)"
+                      class="text-xs font-medium text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded transition"
+                    >
+                      Edytuj
+                    </button>
+                    <button
+                      type="button"
+                      [disabled]="deletingProductId() === product.id"
+                      (click)="deleteProduct(product)"
+                      class="text-xs font-medium text-red-700 hover:text-red-900 bg-red-50 hover:bg-red-100 disabled:opacity-50 px-2.5 py-1 rounded transition"
+                    >
+                      {{ deletingProductId() === product.id ? 'Usuwanie...' : 'Usuń' }}
+                    </button>
+                  </div>
+                }
+              </div>
+
+              <h2 class="text-xl font-bold text-gray-800 mt-2">{{ product.name }}</h2>
               <p class="text-gray-600 text-sm mt-2">{{ product.description }}</p>
             </div>
             <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
