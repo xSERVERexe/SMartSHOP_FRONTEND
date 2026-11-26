@@ -1,15 +1,17 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ProductService } from './services/product.service';
 import { CategoryService } from './services/category.service';
 import { AuthService } from './services/auth.service';
 import { CartService } from './services/cart.service';
+import { OrderService } from './services/order.service';
 import { CreateProductRequest, Product } from './models/product.model';
 import { Category } from './models/category.model';
+import { OrderResponse } from './models/order.model';
 
 @Component({
-  imports: [CurrencyPipe, ReactiveFormsModule],
+  imports: [CurrencyPipe, DatePipe, ReactiveFormsModule],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',
@@ -17,6 +19,7 @@ import { Category } from './models/category.model';
 export class App implements OnInit {
   private productService = inject(ProductService);
   private categoryService = inject(CategoryService);
+  private orderService = inject(OrderService);
   private fb = inject(FormBuilder);
   authService = inject(AuthService);
   cartService = inject(CartService);
@@ -27,6 +30,13 @@ export class App implements OnInit {
   error = signal<string | null>(null);
 
   isCartOpen = signal<boolean>(false);
+  isPlacingOrder = signal<boolean>(false);
+  cartError = signal<string | null>(null);
+
+  orders = signal<OrderResponse[]>([]);
+  isOrdersOpen = signal<boolean>(false);
+  isLoadingOrders = signal<boolean>(false);
+  ordersError = signal<string | null>(null);
 
   isLoginOpen = signal<boolean>(false);
   isLoggingIn = signal<boolean>(false);
@@ -85,6 +95,9 @@ export class App implements OnInit {
   ngOnInit(): void {
     this.loadCategories();
     this.loadProducts();
+    if (this.authService.isAdmin()) {
+      this.loadOrders(false);
+    }
   }
 
   private loadCategories(): void {
@@ -117,13 +130,93 @@ export class App implements OnInit {
     });
   }
 
+  loadOrders(showSpinner = true): void {
+    if (!this.authService.isAdmin()) {
+      return;
+    }
+
+    if (showSpinner) {
+      this.isLoadingOrders.set(true);
+    }
+    this.ordersError.set(null);
+
+    this.orderService.getOrders().subscribe({
+      next: (data) => {
+        this.orders.set(data);
+        this.isLoadingOrders.set(false);
+      },
+      error: (err) => {
+        console.error('Błąd pobierania zamówień:', err);
+        this.ordersError.set('Nie udało się pobrać listy zamówień.');
+        this.isLoadingOrders.set(false);
+      },
+    });
+  }
+
+  toggleOrdersPanel(): void {
+    if (!this.authService.isAdmin()) {
+      this.isLoginOpen.set(true);
+      return;
+    }
+
+    const nextOpen = !this.isOrdersOpen();
+    this.isOrdersOpen.set(nextOpen);
+    if (nextOpen) {
+      this.loadOrders();
+    }
+  }
+
   toggleCart(): void {
+    this.cartError.set(null);
     this.isCartOpen.update((open) => !open);
   }
 
   addToCart(product: Product): void {
+    this.cartError.set(null);
     this.cartService.addProduct(product);
     this.successMessage.set(`Dodano do koszyka: "${product.name}".`);
+  }
+
+  placeOrder(): void {
+    const currentItems = this.cartService.items();
+    if (currentItems.length === 0) {
+      this.cartError.set('Koszyk jest pusty.');
+      return;
+    }
+
+    this.cartError.set(null);
+    this.isPlacingOrder.set(true);
+
+    const payload = {
+      customerEmail: this.authService.adminEmail() ?? undefined,
+      items: currentItems.map((i) => ({
+        productId: i.product.id,
+        quantity: i.quantity,
+      })),
+    };
+
+    this.orderService.createOrder(payload).subscribe({
+      next: (createdOrder) => {
+        this.isPlacingOrder.set(false);
+        this.cartService.clearCart();
+        this.successMessage.set(
+          `Złożono zamówienie #${createdOrder.id} (status: ${createdOrder.status}, suma: ${createdOrder.totalAmount.toFixed(2)} PLN).`,
+        );
+
+        if (this.authService.isAdmin()) {
+          this.isOrdersOpen.set(true);
+          this.loadOrders(false);
+        }
+      },
+      error: (err) => {
+        console.error('Błąd składania zamówienia:', err);
+        this.cartError.set(
+          err?.error?.message ??
+            'Nie udało się złożyć zamówienia. Sprawdź koszyk i połączenie z API.',
+        );
+        this.isPlacingOrder.set(false);
+      },
+    });
   }
 
   toggleLoginPanel(): void {
@@ -147,6 +240,8 @@ export class App implements OnInit {
         this.isLoginOpen.set(false);
         this.loginForm.reset();
         this.successMessage.set(`Zalogowano jako administrator (${res.email}).`);
+        this.isOrdersOpen.set(true);
+        this.loadOrders();
       },
       error: (err) => {
         console.error('Błąd logowania:', err);
@@ -159,6 +254,9 @@ export class App implements OnInit {
   logout(): void {
     this.authService.logout();
     this.closeProductForm();
+    this.orders.set([]);
+    this.isOrdersOpen.set(false);
+    this.ordersError.set(null);
     this.successMessage.set('Wylogowano z konta administratora.');
   }
 
