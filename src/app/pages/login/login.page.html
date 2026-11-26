@@ -1,0 +1,59 @@
+<div class="max-w-sm border-l-2 border-cyan-400 pl-6 py-2 space-y-7 cursor-default">
+  <div>
+    <h1 class="text-2xl font-semibold text-white">Logowanie</h1>
+    <p class="text-sm text-zinc-400 mt-1">Wejdź na swoje konto SMart SHOP.</p>
+  </div>
+
+  @if (errorMsg()) {
+    <p class="border-l-2 border-rose-400 pl-3 text-xs text-rose-300">{{ errorMsg() }}</p>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-6">
+    <div
+      class="group relative border-l-2 border-zinc-800 focus-within:border-cyan-400 pl-3.5 pt-1 pb-2 border-b border-b-zinc-900 focus-within:border-b-cyan-400/60 transition"
+    >
+      <label
+        class="block text-[11px] uppercase tracking-wider text-zinc-500 group-focus-within:text-cyan-400 transition cursor-default"
+      >
+        E-mail
+      </label>
+      <input
+        type="email"
+        formControlName="email"
+        placeholder="adres@domena.pl"
+        class="w-full mt-1 bg-transparent text-sm text-white placeholder-zinc-700 focus:outline-none cursor-text"
+      />
+    </div>
+
+    <div
+      class="group relative border-l-2 border-zinc-800 focus-within:border-cyan-400 pl-3.5 pt-1 pb-2 border-b border-b-zinc-900 focus-within:border-b-cyan-400/60 transition"
+    >
+      <label
+        class="block text-[11px] uppercase tracking-wider text-zinc-500 group-focus-within:text-cyan-400 transition cursor-default"
+      >
+        Hasło
+      </label>
+      <input
+        type="password"
+        formControlName="password"
+        placeholder="••••••••"
+        class="w-full mt-1 bg-transparent text-sm text-white placeholder-zinc-700 focus:outline-none cursor-text"
+      />
+    </div>
+
+    <button
+      type="submit"
+      [disabled]="isSubmitting()"
+      class="w-full py-2.5 px-4 bg-cyan-400 hover:bg-cyan-300 disabled:opacity-50 text-zinc-950 text-xs font-semibold uppercase tracking-wider transition cursor-pointer"
+    >
+      {{ isSubmitting() ? 'Logowanie...' : 'Zaloguj się' }}
+    </button>
+  </form>
+
+  <p class="text-xs text-zinc-500">
+    Brak konta?
+    <a routerLink="/register" class="text-cyan-400 hover:text-cyan-300 font-medium"
+      >Zarejestruj się</a
+    >
+  </p>
+</div>

@@ -1,0 +1,91 @@
+<div class="space-y-10">
+  <div class="flex items-end justify-between pb-6 border-b border-zinc-900">
+    <div class="border-l-2 border-cyan-400 pl-4">
+      <h1 class="text-2xl font-semibold text-white">
+        {{ authService.isAdmin() ? 'Zamówienia' : 'Moje zamówienia' }}
+      </h1>
+      <p class="text-sm text-zinc-400 mt-1">
+        {{
+          authService.isAdmin() ? 'Wszystkie zamówienia w systemie.' : 'Historia Twoich zakupów.'
+        }}
+      </p>
+    </div>
+
+    @if (authService.isLoggedIn()) {
+      <button
+        type="button"
+        (click)="loadOrders()"
+        class="text-xs font-medium text-cyan-400 hover:text-cyan-300 transition cursor-pointer"
+      >
+        Odśwież
+      </button>
+    }
+  </div>
+
+  @if (!authService.isLoggedIn()) {
+    <div class="border-l-2 border-zinc-800 pl-5 py-3 space-y-3">
+      <p class="text-sm text-zinc-400">Zaloguj się, aby zobaczyć zamówienia.</p>
+      <a
+        routerLink="/login"
+        class="inline-block text-xs font-semibold text-cyan-400 hover:text-cyan-300"
+      >
+        Zaloguj się →
+      </a>
+    </div>
+  } @else if (isLoading()) {
+    <p class="border-l-2 border-zinc-800 pl-4 text-sm text-zinc-400">Ładowanie zamówień...</p>
+  } @else if (errorMsg()) {
+    <p class="border-l-2 border-rose-400 pl-4 text-sm text-rose-300">{{ errorMsg() }}</p>
+  } @else if (orders().length === 0) {
+    <div class="border-l-2 border-zinc-800 pl-5 py-3 space-y-3">
+      <p class="text-sm text-zinc-400">Brak zamówień do wyświetlenia.</p>
+      <a
+        routerLink="/"
+        class="inline-block text-xs font-semibold text-cyan-400 hover:text-cyan-300"
+      >
+        Przeglądaj katalog →
+      </a>
+    </div>
+  } @else {
+    <div class="space-y-8">
+      @for (order of orders(); track order.id) {
+        <div
+          class="border-l-2 border-zinc-800 hover:border-cyan-400 pl-5 py-1 space-y-3 transition"
+        >
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="text-sm font-semibold text-white">#{{ order.id }}</span>
+              <span class="text-[11px] uppercase tracking-wider text-cyan-400 font-medium">
+                {{ order.status }}
+              </span>
+              @if (authService.isAdmin()) {
+                <span class="text-xs text-zinc-400">{{ order.customerEmail }}</span>
+              }
+              <span class="text-xs text-zinc-500">
+                {{ order.createdAt | date: 'dd.MM.yyyy HH:mm' }}
+              </span>
+            </div>
+
+            <span class="text-sm font-semibold text-cyan-400">
+              {{ order.totalAmount | currency: 'PLN' : 'symbol' : '1.2-2' }}
+            </span>
+          </div>
+
+          <ul class="space-y-1 text-xs text-zinc-400">
+            @for (item of order.items; track item.productId) {
+              <li class="flex justify-between">
+                <span
+                  >{{ item.productName }}
+                  <span class="text-zinc-600">× {{ item.quantity }}</span></span
+                >
+                <span class="text-zinc-300">{{
+                  item.lineTotal | currency: 'PLN' : 'symbol' : '1.2-2'
+                }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    </div>
+  }
+</div>

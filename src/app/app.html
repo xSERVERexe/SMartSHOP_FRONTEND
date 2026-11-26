@@ -1,643 +1,107 @@
-<div class="min-h-screen bg-gray-50 p-8">
-  <div class="max-w-5xl mx-auto">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-      <h1 class="text-3xl font-bold text-gray-900">SMart SHOP</h1>
-
-      <div class="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          (click)="toggleCart()"
-          class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition flex items-center gap-2"
+<div
+  class="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col lg:flex-row selection:bg-cyan-500/30 selection:text-cyan-200"
+>
+  <aside
+    class="lg:w-64 lg:shrink-0 border-b lg:border-b-0 lg:border-r border-zinc-900 bg-zinc-950/95 px-6 py-5 lg:py-8 flex flex-col justify-between gap-6"
+  >
+    <div class="space-y-8">
+      <a routerLink="/" class="flex items-center gap-3 group">
+        <span class="h-5 w-0.5 bg-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.9)]"></span>
+        <span
+          class="text-lg font-semibold tracking-tight text-white group-hover:text-cyan-300 transition"
         >
-          <span>Koszyk ({{ cartService.totalCount() }})</span>
-          <span class="bg-indigo-800/70 text-indigo-100 text-xs px-2 py-0.5 rounded-md">
-            {{ cartService.totalAmount() | currency: 'PLN' : 'symbol' : '1.2-2' }}
-          </span>
-        </button>
+          SMart<span class="text-cyan-400">SHOP</span>
+        </span>
+      </a>
+
+      <nav class="flex lg:flex-col gap-2 overflow-x-auto">
+        <a
+          routerLink="/"
+          routerLinkActive="border-cyan-400 text-white"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="border-l-2 border-transparent pl-3.5 py-1.5 text-sm font-medium text-zinc-400 hover:text-zinc-100 transition whitespace-nowrap"
+        >
+          Katalog
+        </a>
 
         @if (authService.isLoggedIn()) {
-          <span
-            [class]="
-              authService.isAdmin()
-                ? 'text-xs font-medium bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-full'
-                : 'text-xs font-medium bg-blue-100 text-blue-800 px-3 py-1.5 rounded-full'
-            "
+          <a
+            routerLink="/orders"
+            routerLinkActive="border-cyan-400 text-white"
+            class="border-l-2 border-transparent pl-3.5 py-1.5 text-sm font-medium text-zinc-400 hover:text-zinc-100 transition whitespace-nowrap"
           >
-            {{ authService.isAdmin() ? 'Admin: ' : 'Konto: ' }}{{ authService.userEmail() }}
-          </span>
-
-          <button
-            type="button"
-            (click)="toggleOrdersPanel()"
-            class="bg-slate-700 hover:bg-slate-800 text-white text-sm font-medium px-3.5 py-2 rounded-lg transition"
-          >
-            {{
-              isOrdersOpen()
-                ? authService.isAdmin()
-                  ? 'Ukryj zamówienia'
-                  : 'Ukryj moje zamówienia'
-                : authService.isAdmin()
-                  ? 'Zamówienia (' + orders().length + ')'
-                  : 'Moje zamówienia (' + orders().length + ')'
-            }}
-          </button>
-
-          @if (authService.isAdmin()) {
-            <button
-              type="button"
-              (click)="isFormOpen() ? closeProductForm() : openCreateForm()"
-              class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
-            >
-              {{ isFormOpen() ? 'Zamknij formularz' : '+ Dodaj produkt' }}
-            </button>
-          }
-
-          <button
-            type="button"
-            (click)="logout()"
-            class="bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-medium px-3.5 py-2 rounded-lg transition"
-          >
-            Wyloguj
-          </button>
-        } @else {
-          <button
-            type="button"
-            (click)="openAuthPanel('login')"
-            class="bg-gray-800 hover:bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
-          >
-            Zaloguj się
-          </button>
-          <button
-            type="button"
-            (click)="openAuthPanel('register')"
-            class="bg-white hover:bg-gray-100 text-gray-800 border border-gray-300 text-sm font-medium px-4 py-2 rounded-lg transition"
-          >
-            Zarejestruj się
-          </button>
+            {{ authService.isAdmin() ? 'Zamówienia' : 'Moje zamówienia' }}
+          </a>
         }
-      </div>
+
+        <a
+          routerLink="/cart"
+          routerLinkActive="border-cyan-400 text-white"
+          class="border-l-2 border-transparent pl-3.5 py-1.5 text-sm font-medium text-zinc-400 hover:text-zinc-100 transition flex items-center justify-between gap-3 whitespace-nowrap"
+        >
+          <span>Koszyk</span>
+          <span class="text-xs font-semibold text-cyan-400">
+            {{ cartService.totalCount() }}
+          </span>
+        </a>
+      </nav>
     </div>
 
-    @if (isCartOpen()) {
-      <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6 shadow-sm space-y-4">
-        <div class="flex items-center justify-between border-b border-gray-100 pb-3">
-          <h2 class="text-lg font-bold text-gray-900">
-            Twój koszyk ({{ cartService.totalCount() }} szt.)
-          </h2>
-          <div class="flex items-center gap-2">
-            @if (cartService.items().length > 0) {
-              <button
-                type="button"
-                (click)="cartService.clearCart()"
-                class="text-xs font-medium text-red-600 hover:text-red-800 px-2.5 py-1 rounded hover:bg-red-50 transition"
-              >
-                Wyczyść koszyk
-              </button>
-            }
-            <button
-              type="button"
-              (click)="toggleCart()"
-              class="text-xs font-medium text-gray-600 hover:text-gray-900 px-2.5 py-1 rounded hover:bg-gray-100 transition"
-            >
-              Zamknij
-            </button>
-          </div>
-        </div>
-
-        @if (cartError()) {
-          <div
-            class="bg-red-50 border border-red-200 text-red-700 px-3.5 py-2.5 rounded-lg text-sm"
-          >
-            {{ cartError() }}
-          </div>
-        }
-
-        @if (cartService.items().length === 0) {
-          <p class="text-sm text-gray-500 py-4 text-center">
-            Koszyk jest pusty. Dodaj produkty z listy poniżej.
+    <div
+      class="pt-4 lg:border-t border-zinc-900 flex lg:flex-col items-center lg:items-start justify-between gap-3"
+    >
+      @if (authService.isLoggedIn()) {
+        <div class="border-l-2 border-cyan-500/60 pl-3">
+          <p class="text-[11px] uppercase tracking-wider text-zinc-500">
+            {{ authService.isAdmin() ? 'Administrator' : 'Konto' }}
           </p>
-        } @else {
-          <div class="divide-y divide-gray-100">
-            @for (item of cartService.items(); track item.product.id) {
-              <div class="py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <p class="font-semibold text-gray-900">{{ item.product.name }}</p>
-                  <p class="text-xs text-gray-500">
-                    Cena jedn.: {{ item.product.price | currency: 'PLN' : 'symbol' : '1.2-2' }}
-                  </p>
-                </div>
-
-                <div class="flex items-center justify-between sm:justify-end gap-4">
-                  <div class="flex items-center gap-2">
-                    <button
-                      type="button"
-                      (click)="cartService.decrement(item.product.id)"
-                      class="w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-sm flex items-center justify-center transition"
-                    >
-                      -
-                    </button>
-                    <span class="w-6 text-center text-sm font-semibold text-gray-900">
-                      {{ item.quantity }}
-                    </span>
-                    <button
-                      type="button"
-                      (click)="cartService.increment(item.product.id)"
-                      class="w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-sm flex items-center justify-center transition"
-                    >
-                      +
-                    </button>
-                  </div>
-
-                  <span class="text-sm font-bold text-gray-900 min-w-[95px] text-right">
-                    {{ item.product.price * item.quantity | currency: 'PLN' : 'symbol' : '1.2-2' }}
-                  </span>
-
-                  <button
-                    type="button"
-                    (click)="cartService.removeItem(item.product.id)"
-                    class="text-xs font-medium text-red-600 hover:text-red-800 px-2 py-1 rounded hover:bg-red-50 transition"
-                  >
-                    Usuń
-                  </button>
-                </div>
-              </div>
-            }
-          </div>
-
-          <div
-            class="pt-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
-          >
-            <div>
-              <span class="text-sm text-gray-600">Razem do zapłaty: </span>
-              <span class="text-xl font-bold text-gray-900">
-                {{ cartService.totalAmount() | currency: 'PLN' : 'symbol' : '1.2-2' }}
-              </span>
-            </div>
-
-            @if (authService.isLoggedIn()) {
-              <button
-                type="button"
-                [disabled]="isPlacingOrder()"
-                (click)="placeOrder()"
-                class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition"
-              >
-                {{ isPlacingOrder() ? 'Składanie zamówienia...' : 'Złóż zamówienie' }}
-              </button>
-            } @else {
-              <div class="flex flex-wrap items-center gap-2">
-                <span
-                  class="text-xs text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2 rounded-lg"
-                >
-                  Wymagane konto, aby złożyć zamówienie
-                </span>
-                <button
-                  type="button"
-                  (click)="openAuthPanel('login')"
-                  class="bg-gray-800 hover:bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
-                >
-                  Zaloguj się
-                </button>
-                <button
-                  type="button"
-                  (click)="openAuthPanel('register')"
-                  class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
-                >
-                  Załóż konto
-                </button>
-              </div>
-            }
-          </div>
-        }
-      </div>
-    }
-
-    @if (authService.isLoggedIn() && isOrdersOpen()) {
-      <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6 shadow-sm space-y-4">
-        <div class="flex items-center justify-between border-b border-gray-100 pb-3">
-          <h2 class="text-lg font-bold text-gray-900">
-            {{ authService.isAdmin() ? 'Zamówienia w bazie' : 'Moje zamówienia' }}
-          </h2>
-          <div class="flex items-center gap-2">
-            <button
-              type="button"
-              (click)="loadOrders()"
-              class="text-xs font-medium text-blue-600 hover:text-blue-800 px-2.5 py-1 rounded hover:bg-blue-50 transition"
-            >
-              Odśwież
-            </button>
-            <button
-              type="button"
-              (click)="toggleOrdersPanel()"
-              class="text-xs font-medium text-gray-600 hover:text-gray-900 px-2.5 py-1 rounded hover:bg-gray-100 transition"
-            >
-              Zamknij
-            </button>
-          </div>
-        </div>
-
-        @if (ordersError()) {
-          <div
-            class="bg-red-50 border border-red-200 text-red-700 px-3.5 py-2.5 rounded-lg text-sm"
-          >
-            {{ ordersError() }}
-          </div>
-        }
-
-        @if (isLoadingOrders()) {
-          <p class="text-sm text-gray-500 py-3">Ładowanie zamówień...</p>
-        } @else if (orders().length === 0) {
-          <p class="text-sm text-gray-500 py-3">
-            {{
-              authService.isAdmin()
-                ? 'Brak złożonych zamówień w bazie.'
-                : 'Nie masz jeszcze żadnych zamówień.'
-            }}
+          <p class="text-xs text-zinc-300 truncate max-w-[180px]">
+            {{ authService.userEmail() }}
           </p>
-        } @else {
-          <div class="space-y-3">
-            @for (order of orders(); track order.id) {
-              <div class="border border-gray-100 rounded-lg p-4 bg-gray-50/60 space-y-2">
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                  <div class="flex flex-wrap items-center gap-2">
-                    <span class="font-bold text-gray-900">Zamówienie #{{ order.id }}</span>
-                    <span class="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
-                      {{ order.status }}
-                    </span>
-                    @if (authService.isAdmin()) {
-                      <span class="text-xs text-gray-600"> Klient: {{ order.customerEmail }} </span>
-                    }
-                    <span class="text-xs text-gray-500">
-                      {{ order.createdAt | date: 'dd.MM.yyyy HH:mm' }}
-                    </span>
-                  </div>
-
-                  <span class="font-bold text-gray-900">
-                    {{ order.totalAmount | currency: 'PLN' : 'symbol' : '1.2-2' }}
-                  </span>
-                </div>
-
-                <ul class="text-sm text-gray-700 space-y-1 pt-1">
-                  @for (item of order.items; track item.productId) {
-                    <li class="flex justify-between">
-                      <span>{{ item.productName }} × {{ item.quantity }}</span>
-                      <span class="font-medium">
-                        {{ item.lineTotal | currency: 'PLN' : 'symbol' : '1.2-2' }}
-                      </span>
-                    </li>
-                  }
-                </ul>
-              </div>
-            }
-          </div>
-        }
-      </div>
-    }
-
-    @if (!authService.isLoggedIn() && isAuthOpen()) {
-      <form
-        [formGroup]="authForm"
-        (ngSubmit)="onAuthSubmit()"
-        class="bg-white rounded-xl border border-gray-200 p-6 mb-6 shadow-sm space-y-4 max-w-md ml-auto"
-      >
-        <div class="flex items-center justify-between gap-2 border-b border-gray-100 pb-3">
-          <h2 class="text-lg font-bold text-gray-900">
-            {{ authMode() === 'login' ? 'Logowanie' : 'Rejestracja konta' }}
-          </h2>
-          <div class="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
-            <button
-              type="button"
-              (click)="setAuthMode('login')"
-              [class]="
-                authMode() === 'login'
-                  ? 'bg-white text-gray-900 text-xs font-semibold px-2.5 py-1 rounded-md shadow-xs transition'
-                  : 'text-gray-600 hover:text-gray-900 text-xs font-medium px-2.5 py-1 rounded-md transition'
-              "
-            >
-              Logowanie
-            </button>
-            <button
-              type="button"
-              (click)="setAuthMode('register')"
-              [class]="
-                authMode() === 'register'
-                  ? 'bg-white text-gray-900 text-xs font-semibold px-2.5 py-1 rounded-md shadow-xs transition'
-                  : 'text-gray-600 hover:text-gray-900 text-xs font-medium px-2.5 py-1 rounded-md transition'
-              "
-            >
-              Rejestracja
-            </button>
-          </div>
         </div>
 
-        @if (authError()) {
-          <div
-            class="bg-red-50 border border-red-200 text-red-700 px-3.5 py-2.5 rounded-lg text-sm"
-          >
-            {{ authError() }}
-          </div>
-        }
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
-          <input
-            type="email"
-            formControlName="email"
-            placeholder="email@domena.pl"
-            class="w-full rounded-lg border border-gray-300 px-3.5 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-          />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Hasło</label>
-          <input
-            type="password"
-            formControlName="password"
-            placeholder="Wpisz hasło..."
-            class="w-full rounded-lg border border-gray-300 px-3.5 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-          />
-          @if (
-            authMode() === 'register' &&
-            authForm.controls.password.touched &&
-            authForm.controls.password.invalid
-          ) {
-            <p class="text-xs text-red-600 mt-1">Hasło musi mieć co najmniej 6 znaków.</p>
-          }
-        </div>
-
-        <div class="flex justify-end gap-2 pt-1">
-          <button
-            type="button"
-            (click)="toggleAuthPanel()"
-            class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition"
-          >
-            Anuluj
-          </button>
-          <button
-            type="submit"
-            [disabled]="isSubmittingAuth()"
-            class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
-          >
-            {{
-              isSubmittingAuth()
-                ? authMode() === 'login'
-                  ? 'Logowanie...'
-                  : 'Rejestrowanie...'
-                : authMode() === 'login'
-                  ? 'Zaloguj'
-                  : 'Zarejestruj'
-            }}
-          </button>
-        </div>
-      </form>
-    }
-
-    @if (successMessage()) {
-      <div
-        class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg mb-6 flex items-center justify-between"
-      >
-        <span>{{ successMessage() }}</span>
         <button
           type="button"
-          (click)="successMessage.set(null)"
-          class="text-xs font-medium text-emerald-700 hover:text-emerald-900"
+          (click)="logout()"
+          class="text-xs font-medium text-zinc-400 hover:text-rose-300 pl-3 transition cursor-pointer"
         >
-          Ukryj
+          Wyloguj się →
         </button>
-      </div>
-    }
-
-    @if (!isFormOpen() && submitError()) {
-      <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 text-sm">
-        {{ submitError() }}
-      </div>
-    }
-
-    @if (authService.isAdmin() && isFormOpen()) {
-      <form
-        [formGroup]="productForm"
-        (ngSubmit)="onSubmit()"
-        class="bg-white rounded-xl border border-gray-200 p-6 mb-6 shadow-sm space-y-4"
-      >
-        <h2 class="text-lg font-bold text-gray-900">
-          {{ editingProductId() !== null ? 'Edycja produktu' : 'Nowy produkt' }}
-        </h2>
-
-        @if (submitError()) {
-          <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-            {{ submitError() }}
-          </div>
-        }
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Nazwa produktu *</label>
-            <input
-              type="text"
-              formControlName="name"
-              placeholder="np. MacBook Air M3"
-              class="w-full rounded-lg border border-gray-300 px-3.5 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            />
-            @if (productForm.controls.name.touched && productForm.controls.name.invalid) {
-              <p class="text-xs text-red-600 mt-1">Podaj nazwę produktu (maks. 100 znaków).</p>
-            }
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Kategoria *</label>
-            <select
-              formControlName="categoryId"
-              class="w-full rounded-lg border border-gray-300 px-3.5 py-2 text-sm text-gray-900 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            >
-              <option [value]="0" disabled>Wybierz kategorię</option>
-              @for (cat of categories(); track cat.id) {
-                <option [value]="cat.id">{{ cat.name }}</option>
-              }
-            </select>
-            @if (
-              productForm.controls.categoryId.touched && productForm.controls.categoryId.invalid
-            ) {
-              <p class="text-xs text-red-600 mt-1">Wybierz poprawną kategorię.</p>
-            }
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Opis</label>
-            <input
-              type="text"
-              formControlName="description"
-              placeholder="Krótki opis produktu (maks. 500 znaków)"
-              class="w-full rounded-lg border border-gray-300 px-3.5 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Cena (PLN) *</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0.01"
-              formControlName="price"
-              class="w-full rounded-lg border border-gray-300 px-3.5 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            />
-            @if (productForm.controls.price.touched && productForm.controls.price.invalid) {
-              <p class="text-xs text-red-600 mt-1">Cena musi być większa niż 0.</p>
-            }
-          </div>
-        </div>
-
-        <div class="flex items-center justify-end gap-3 pt-2">
-          <button
-            type="button"
-            (click)="closeProductForm()"
-            class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition"
+      } @else {
+        <div class="flex lg:flex-col gap-2 w-full">
+          <a
+            routerLink="/login"
+            class="border-l-2 border-zinc-800 hover:border-cyan-400 pl-3 py-1 text-sm font-medium text-zinc-300 hover:text-white transition"
           >
-            Anuluj
-          </button>
-          <button
-            type="submit"
-            [disabled]="isSubmitting()"
-            class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg transition"
+            Zaloguj się
+          </a>
+          <a
+            routerLink="/register"
+            class="border-l-2 border-cyan-400 pl-3 py-1 text-sm font-semibold text-cyan-400 hover:text-cyan-300 transition"
           >
-            {{
-              isSubmitting()
-                ? 'Zapisywanie...'
-                : editingProductId() !== null
-                  ? 'Zapisz zmiany'
-                  : 'Zapisz produkt'
-            }}
-          </button>
+            Rejestracja
+          </a>
         </div>
-      </form>
-    }
-
-    @if (isLoading()) {
-      <div class="flex items-center gap-3 text-gray-600 py-12">
-        <div
-          class="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"
-        ></div>
-        <span>Ładowanie produktów...</span>
-      </div>
-    } @else if (error()) {
-      <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-        {{ error() }}
-      </div>
-    } @else {
-      <div
-        class="bg-white rounded-xl border border-gray-200 p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-      >
-        <div class="relative flex-1">
-          <input
-            type="text"
-            [value]="searchQuery()"
-            (input)="onSearchChange($event)"
-            placeholder="Szukaj po nazwie, opisie lub kategorii..."
-            class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-          />
-          @if (searchQuery()) {
-            <button
-              type="button"
-              (click)="searchQuery.set('')"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600"
-            >
-              Wyczyść
-            </button>
-          }
-        </div>
-
-        <div class="flex flex-wrap items-center gap-2">
-          @for (category of categoryNames(); track category) {
-            <button
-              type="button"
-              (click)="selectCategory(category)"
-              [class]="
-                selectedCategory() === category
-                  ? 'bg-blue-600 text-white text-sm font-medium px-3.5 py-1.5 rounded-lg transition'
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-3.5 py-1.5 rounded-lg transition'
-              "
-            >
-              {{ category === 'ALL' ? 'Wszystkie' : category }}
-            </button>
-          }
-        </div>
-      </div>
-
-      @if (products().length > 0) {
-        <p class="text-sm text-gray-500 mb-4">
-          Wyświetlono {{ filteredProducts().length }} z {{ products().length }} produktów
-        </p>
       }
+    </div>
+  </aside>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        @for (product of filteredProducts(); track product.id) {
-          <div
-            class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col justify-between"
-          >
-            <div>
-              <div class="flex items-center justify-between gap-2">
-                <span class="text-xs font-semibold uppercase tracking-wider text-blue-600">
-                  {{ product.categoryName }}
-                </span>
+  <main class="flex-1 max-w-5xl w-full mx-auto px-6 sm:px-10 py-8 lg:py-12">
+    <router-outlet />
+  </main>
 
-                @if (authService.isAdmin()) {
-                  <div class="flex items-center gap-2">
-                    <button
-                      type="button"
-                      (click)="startEdit(product)"
-                      class="text-xs font-medium text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded transition"
-                    >
-                      Edytuj
-                    </button>
-                    <button
-                      type="button"
-                      [disabled]="deletingProductId() === product.id"
-                      (click)="deleteProduct(product)"
-                      class="text-xs font-medium text-red-700 hover:text-red-900 bg-red-50 hover:bg-red-100 disabled:opacity-50 px-2.5 py-1 rounded transition"
-                    >
-                      {{ deletingProductId() === product.id ? 'Usuwanie...' : 'Usuń' }}
-                    </button>
-                  </div>
-                }
-              </div>
-
-              <h2 class="text-xl font-bold text-gray-800 mt-2">{{ product.name }}</h2>
-              <p class="text-gray-600 text-sm mt-2">{{ product.description }}</p>
-            </div>
-            <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-              <span class="text-lg font-bold text-gray-900">
-                {{ product.price | currency: 'PLN' : 'symbol' : '1.2-2' }}
-              </span>
-              <button
-                type="button"
-                (click)="addToCart(product)"
-                class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
-              >
-                Do koszyka
-              </button>
-            </div>
-          </div>
-        } @empty {
-          @if (products().length === 0) {
-            <div
-              class="col-span-full bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500"
-            >
-              Brak produktów w sklepie.
-            </div>
-          } @else {
-            <div class="col-span-full bg-white rounded-xl border border-gray-200 p-8 text-center">
-              <p class="text-gray-600 mb-3">Brak produktów spełniających wybrane kryteria.</p>
-              <button
-                type="button"
-                (click)="clearFilters()"
-                class="bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium px-4 py-2 rounded-lg transition"
-              >
-                Resetuj filtry
-              </button>
-            </div>
-          }
-        }
-      </div>
-    }
-  </div>
+  @if (notice()) {
+    <div
+      class="fixed bottom-6 right-6 z-50 max-w-sm bg-zinc-950/95 border-l-2 border-cyan-400 border-y border-r border-zinc-800/80 pl-4 pr-3.5 py-3 shadow-[0_12px_32px_rgba(0,0,0,0.65)] flex items-center justify-between gap-4 cursor-default"
+    >
+      <span class="text-xs font-medium text-zinc-100">{{ notice() }}</span>
+      <button
+        type="button"
+        (click)="dismissNotice()"
+        class="text-[11px] text-zinc-500 hover:text-cyan-300 transition cursor-pointer"
+      >
+        ×
+      </button>
+    </div>
+  }
 </div>

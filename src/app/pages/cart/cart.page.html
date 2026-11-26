@@ -1,0 +1,125 @@
+<div class="space-y-10">
+  <div class="flex items-end justify-between pb-6 border-b border-zinc-900">
+    <div class="border-l-2 border-cyan-400 pl-4">
+      <h1 class="text-2xl font-semibold text-white">Koszyk</h1>
+      <p class="text-sm text-zinc-400 mt-1">Wybrane produkty gotowe do zamówienia.</p>
+    </div>
+
+    @if (cartService.items().length > 0) {
+      <button
+        type="button"
+        (click)="cartService.clearCart()"
+        class="text-xs text-zinc-500 hover:text-rose-300 transition cursor-pointer"
+      >
+        Wyczyść koszyk
+      </button>
+    }
+  </div>
+
+  @if (errorMsg()) {
+    <div class="border-l-2 border-rose-400 pl-4 py-1 text-sm text-rose-300">
+      {{ errorMsg() }}
+    </div>
+  }
+
+  @if (cartService.items().length === 0) {
+    <div class="border-l-2 border-zinc-800 pl-5 py-4 space-y-3">
+      <p class="text-sm text-zinc-400">Koszyk jest pusty.</p>
+      <a
+        routerLink="/"
+        class="inline-block text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition"
+      >
+        Wróć do katalogu →
+      </a>
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div class="lg:col-span-2 divide-y divide-zinc-900">
+        @for (item of cartService.items(); track item.product.id) {
+          <div
+            class="py-4 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-l-2 border-transparent hover:border-cyan-400/70 pl-4 transition"
+          >
+            <div>
+              <p class="text-sm font-medium text-white">{{ item.product.name }}</p>
+              <p class="text-xs text-zinc-500 mt-0.5">
+                {{ item.product.price | currency: 'PLN' : 'symbol' : '1.2-2' }} / szt.
+              </p>
+            </div>
+
+            <div class="flex items-center justify-between sm:justify-end gap-5">
+              <div class="flex items-center gap-3 text-sm">
+                <button
+                  type="button"
+                  (click)="cartService.decrement(item.product.id)"
+                  class="text-zinc-400 hover:text-white px-1.5 transition cursor-pointer"
+                >
+                  −
+                </button>
+                <span class="font-semibold text-cyan-400 w-5 text-center">{{ item.quantity }}</span>
+                <button
+                  type="button"
+                  (click)="cartService.increment(item.product.id)"
+                  class="text-zinc-400 hover:text-white px-1.5 transition cursor-pointer"
+                >
+                  +
+                </button>
+              </div>
+
+              <span class="text-sm font-semibold text-zinc-100 min-w-[92px] text-right">
+                {{ item.product.price * item.quantity | currency: 'PLN' : 'symbol' : '1.2-2' }}
+              </span>
+
+              <button
+                type="button"
+                (click)="cartService.removeItem(item.product.id)"
+                class="text-xs text-zinc-500 hover:text-rose-300 transition cursor-pointer"
+              >
+                Usuń
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="border-l-2 border-cyan-400 pl-6 py-1 h-fit space-y-5">
+        <h2 class="text-xs uppercase tracking-widest text-zinc-400">Podsumowanie</h2>
+
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between text-zinc-400">
+            <span>Sztuk łącznie</span>
+            <span class="text-zinc-200">{{ cartService.totalCount() }}</span>
+          </div>
+          <div
+            class="flex justify-between text-base font-semibold text-white pt-3 border-t border-zinc-900"
+          >
+            <span>Razem</span>
+            <span class="text-cyan-400">{{
+              cartService.totalAmount() | currency: 'PLN' : 'symbol' : '1.2-2'
+            }}</span>
+          </div>
+        </div>
+
+        @if (authService.isLoggedIn()) {
+          <button
+            type="button"
+            [disabled]="isPlacing()"
+            (click)="placeOrder()"
+            class="w-full py-2.5 px-4 bg-cyan-400 hover:bg-cyan-300 disabled:opacity-50 text-zinc-950 text-xs font-semibold uppercase tracking-wider transition cursor-pointer"
+          >
+            {{ isPlacing() ? 'Przetwarzanie...' : 'Złóż zamówienie' }}
+          </button>
+        } @else {
+          <div class="space-y-3">
+            <p class="text-xs text-zinc-400">Zaloguj się, aby sfinalizować zamówienie.</p>
+            <a
+              routerLink="/login"
+              class="block text-center py-2.5 px-4 bg-cyan-400 hover:bg-cyan-300 text-zinc-950 text-xs font-semibold uppercase tracking-wider transition"
+            >
+              Przejdź do logowania
+            </a>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
