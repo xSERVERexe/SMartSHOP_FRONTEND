@@ -29,6 +29,8 @@ export class App implements OnInit {
   loginError = signal<string | null>(null);
 
   isFormOpen = signal<boolean>(false);
+  editingProductId = signal<number | null>(null);
+  deletingProductId = signal<number | null>(null);
   isSubmitting = signal<boolean>(false);
   submitError = signal<string | null>(null);
   successMessage = signal<string | null>(null);
@@ -143,18 +145,55 @@ export class App implements OnInit {
 
   logout(): void {
     this.authService.logout();
-    this.isFormOpen.set(false);
-    this.submitError.set(null);
+    this.closeProductForm();
     this.successMessage.set('Wylogowano z konta administratora.');
   }
 
-  toggleForm(): void {
+  openCreateForm(): void {
     if (!this.authService.isAdmin()) {
       this.isLoginOpen.set(true);
       return;
     }
+
     this.submitError.set(null);
-    this.isFormOpen.update((open) => !open);
+    this.editingProductId.set(null);
+    const defaultCategoryId = this.categories()[0]?.id ?? 0;
+
+    this.productForm.reset({
+      name: '',
+      description: '',
+      price: 0,
+      categoryId: defaultCategoryId,
+    });
+    this.isFormOpen.set(true);
+  }
+
+  startEdit(product: Product): void {
+    if (!this.authService.isAdmin()) {
+      this.isLoginOpen.set(true);
+      return;
+    }
+
+    this.submitError.set(null);
+    this.editingProductId.set(product.id);
+
+    const matchedCategory = this.categories().find((c) => c.name === product.categoryName);
+    const categoryId = matchedCategory?.id ?? this.categories()[0]?.id ?? 0;
+
+    this.productForm.reset({
+      name: product.name,
+      description: product.description ?? '',
+      price: product.price,
+      categoryId,
+    });
+    this.isFormOpen.set(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  closeProductForm(): void {
+    this.isFormOpen.set(false);
+    this.editingProductId.set(null);
+    this.submitError.set(null);
   }
 
   onSubmit(): void {
@@ -175,12 +214,22 @@ export class App implements OnInit {
     };
 
     this.isSubmitting.set(true);
+    const editingId = this.editingProductId();
 
-    this.productService.createProduct(payload).subscribe({
-      next: (created) => {
+    const request$ =
+      editingId !== null
+        ? this.productService.updateProduct(editingId, payload)
+        : this.productService.createProduct(payload);
+
+    request$.subscribe({
+      next: (saved) => {
         this.isSubmitting.set(false);
-        this.isFormOpen.set(false);
-        this.successMessage.set(`Dodano produkt: "${created.name}".`);
+        this.closeProductForm();
+        this.successMessage.set(
+          editingId !== null
+            ? `Zaktualizowano produkt: "${saved.name}".`
+            : `Dodano produkt: "${saved.name}".`,
+        );
 
         const defaultCategoryId = this.categories()[0]?.id ?? 0;
         this.productForm.reset({
@@ -193,15 +242,54 @@ export class App implements OnInit {
         this.loadProducts(false);
       },
       error: (err) => {
-        console.error('Błąd dodawania produktu:', err);
+        console.error('Błąd zapisu produktu:', err);
         if (err?.status === 401 || err?.status === 403) {
           this.submitError.set('Brak autoryzacji administratora. Zaloguj się ponownie.');
         } else {
           this.submitError.set(
-            err?.error?.message ?? 'Nie udało się dodać produktu. Sprawdź poprawność danych.',
+            err?.error?.message ?? 'Nie udało się zapisać produktu. Sprawdź poprawność danych.',
           );
         }
         this.isSubmitting.set(false);
+      },
+    });
+  }
+
+  deleteProduct(product: Product): void {
+    if (!this.authService.isAdmin()) {
+      this.isLoginOpen.set(true);
+      return;
+    }
+
+    const confirmed = window.confirm(`Czy na pewno chcesz usunąć produkt "${product.name}"?`);
+    if (!confirmed) {
+      return;
+    }
+
+    this.submitError.set(null);
+    this.successMessage.set(null);
+    this.deletingProductId.set(product.id);
+
+    this.productService.deleteProduct(product.id).subscribe({
+      next: () => {
+        this.deletingProductId.set(null);
+        if (this.editingProductId() === product.id) {
+          this.closeProductForm();
+        }
+        this.products.update((list) => list.filter((p) => p.id !== product.id));
+        this.successMessage.set(`Usunięto produkt: "${product.name}".`);
+      },
+      error: (err) => {
+        console.error('Błąd usuwania produktu:', err);
+        this.deletingProductId.set(null);
+        if (err?.status === 401 || err?.status === 403) {
+          this.submitError.set('Brak autoryzacji administratora. Zaloguj się ponownie.');
+        } else if (err?.status === 404) {
+          this.submitError.set('Produkt nie istnieje już w bazie.');
+          this.loadProducts(false);
+        } else {
+          this.submitError.set(err?.error?.message ?? 'Nie udało się usunąć produktu.');
+        }
       },
     });
   }
