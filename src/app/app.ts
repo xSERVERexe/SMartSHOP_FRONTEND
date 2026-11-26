@@ -38,9 +38,10 @@ export class App implements OnInit {
   isLoadingOrders = signal<boolean>(false);
   ordersError = signal<string | null>(null);
 
-  isLoginOpen = signal<boolean>(false);
-  isLoggingIn = signal<boolean>(false);
-  loginError = signal<string | null>(null);
+  isAuthOpen = signal<boolean>(false);
+  authMode = signal<'login' | 'register'>('login');
+  isSubmittingAuth = signal<boolean>(false);
+  authError = signal<string | null>(null);
 
   isFormOpen = signal<boolean>(false);
   editingProductId = signal<number | null>(null);
@@ -52,9 +53,9 @@ export class App implements OnInit {
   searchQuery = signal<string>('');
   selectedCategory = signal<string>('ALL');
 
-  loginForm = this.fb.nonNullable.group({
+  authForm = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required]],
+    password: ['', [Validators.required, Validators.minLength(6)]],
   });
 
   productForm = this.fb.nonNullable.group({
@@ -155,7 +156,7 @@ export class App implements OnInit {
 
   toggleOrdersPanel(): void {
     if (!this.authService.isAdmin()) {
-      this.isLoginOpen.set(true);
+      this.openAuthPanel('login');
       return;
     }
 
@@ -178,6 +179,12 @@ export class App implements OnInit {
   }
 
   placeOrder(): void {
+    if (!this.authService.isLoggedIn()) {
+      this.cartError.set('Aby złożyć zamówienie, zaloguj się lub utwórz konto.');
+      this.openAuthPanel('login');
+      return;
+    }
+
     const currentItems = this.cartService.items();
     if (currentItems.length === 0) {
       this.cartError.set('Koszyk jest pusty.');
@@ -188,7 +195,7 @@ export class App implements OnInit {
     this.isPlacingOrder.set(true);
 
     const payload = {
-      customerEmail: this.authService.adminEmail() ?? undefined,
+      customerEmail: this.authService.userEmail() ?? undefined,
       items: currentItems.map((i) => ({
         productId: i.product.id,
         quantity: i.quantity,
@@ -210,43 +217,81 @@ export class App implements OnInit {
       },
       error: (err) => {
         console.error('Błąd składania zamówienia:', err);
-        this.cartError.set(
-          err?.error?.message ??
-            'Nie udało się złożyć zamówienia. Sprawdź koszyk i połączenie z API.',
-        );
+        if (err?.status === 401) {
+          this.cartError.set(
+            'Sesja wygasła lub brak konta. Zaloguj się ponownie, aby złożyć zamówienie.',
+          );
+          this.openAuthPanel('login');
+        } else {
+          this.cartError.set(
+            err?.error?.message ??
+              'Nie udało się złożyć zamówienia. Sprawdź koszyk i połączenie z API.',
+          );
+        }
         this.isPlacingOrder.set(false);
       },
     });
   }
 
-  toggleLoginPanel(): void {
-    this.loginError.set(null);
-    this.isLoginOpen.update((open) => !open);
+  openAuthPanel(mode: 'login' | 'register' = 'login'): void {
+    this.authError.set(null);
+    this.authMode.set(mode);
+    this.isAuthOpen.set(true);
   }
 
-  onLoginSubmit(): void {
-    this.loginError.set(null);
-    if (this.loginForm.invalid) {
-      this.loginForm.markAllAsTouched();
+  toggleAuthPanel(): void {
+    this.authError.set(null);
+    this.isAuthOpen.update((open) => !open);
+  }
+
+  setAuthMode(mode: 'login' | 'register'): void {
+    this.authError.set(null);
+    this.authMode.set(mode);
+  }
+
+  onAuthSubmit(): void {
+    this.authError.set(null);
+    if (this.authForm.invalid) {
+      this.authForm.markAllAsTouched();
       return;
     }
 
-    const { email, password } = this.loginForm.getRawValue();
-    this.isLoggingIn.set(true);
+    const { email, password } = this.authForm.getRawValue();
+    const cleanEmail = email.trim();
+    const isRegister = this.authMode() === 'register';
 
-    this.authService.login(email.trim(), password).subscribe({
+    this.isSubmittingAuth.set(true);
+
+    const request$ = isRegister
+      ? this.authService.register(cleanEmail, password)
+      : this.authService.login(cleanEmail, password);
+
+    request$.subscribe({
       next: (res) => {
-        this.isLoggingIn.set(false);
-        this.isLoginOpen.set(false);
-        this.loginForm.reset();
-        this.successMessage.set(`Zalogowano jako administrator (${res.email}).`);
-        this.isOrdersOpen.set(true);
-        this.loadOrders();
+        this.isSubmittingAuth.set(false);
+        this.isAuthOpen.set(false);
+        this.cartError.set(null);
+        this.authForm.reset();
+
+        if (res.role === 'Admin') {
+          this.successMessage.set(`Zalogowano jako administrator (${res.email}).`);
+          this.isOrdersOpen.set(true);
+          this.loadOrders();
+        } else {
+          this.successMessage.set(
+            isRegister
+              ? `Utworzono konto i zalogowano jako ${res.email}.`
+              : `Zalogowano jako ${res.email}.`,
+          );
+        }
       },
       error: (err) => {
-        console.error('Błąd logowania:', err);
-        this.loginError.set(err?.error?.message ?? 'Nieprawidłowy e-mail lub hasło.');
-        this.isLoggingIn.set(false);
+        console.error('Błąd autoryzacji:', err);
+        this.authError.set(
+          err?.error?.message ??
+            (isRegister ? 'Nie udało się utworzyć konta.' : 'Nieprawidłowy e-mail lub hasło.'),
+        );
+        this.isSubmittingAuth.set(false);
       },
     });
   }
@@ -257,12 +302,12 @@ export class App implements OnInit {
     this.orders.set([]);
     this.isOrdersOpen.set(false);
     this.ordersError.set(null);
-    this.successMessage.set('Wylogowano z konta administratora.');
+    this.successMessage.set('Wylogowano z konta.');
   }
 
   openCreateForm(): void {
     if (!this.authService.isAdmin()) {
-      this.isLoginOpen.set(true);
+      this.openAuthPanel('login');
       return;
     }
 
@@ -281,7 +326,7 @@ export class App implements OnInit {
 
   startEdit(product: Product): void {
     if (!this.authService.isAdmin()) {
-      this.isLoginOpen.set(true);
+      this.openAuthPanel('login');
       return;
     }
 
@@ -368,7 +413,7 @@ export class App implements OnInit {
 
   deleteProduct(product: Product): void {
     if (!this.authService.isAdmin()) {
-      this.isLoginOpen.set(true);
+      this.openAuthPanel('login');
       return;
     }
 
