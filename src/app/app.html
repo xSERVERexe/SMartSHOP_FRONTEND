@@ -15,26 +15,43 @@
           </span>
         </button>
 
-        @if (authService.isAdmin()) {
+        @if (authService.isLoggedIn()) {
           <span
-            class="text-xs font-medium bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-full"
+            [class]="
+              authService.isAdmin()
+                ? 'text-xs font-medium bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-full'
+                : 'text-xs font-medium bg-blue-100 text-blue-800 px-3 py-1.5 rounded-full'
+            "
           >
-            Admin: {{ authService.adminEmail() }}
+            {{ authService.isAdmin() ? 'Admin: ' : 'Konto: ' }}{{ authService.userEmail() }}
           </span>
+
           <button
             type="button"
             (click)="toggleOrdersPanel()"
             class="bg-slate-700 hover:bg-slate-800 text-white text-sm font-medium px-3.5 py-2 rounded-lg transition"
           >
-            {{ isOrdersOpen() ? 'Ukryj zamówienia' : 'Zamówienia (' + orders().length + ')' }}
+            {{
+              isOrdersOpen()
+                ? authService.isAdmin()
+                  ? 'Ukryj zamówienia'
+                  : 'Ukryj moje zamówienia'
+                : authService.isAdmin()
+                  ? 'Zamówienia (' + orders().length + ')'
+                  : 'Moje zamówienia (' + orders().length + ')'
+            }}
           </button>
-          <button
-            type="button"
-            (click)="isFormOpen() ? closeProductForm() : openCreateForm()"
-            class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
-          >
-            {{ isFormOpen() ? 'Zamknij formularz' : '+ Dodaj produkt' }}
-          </button>
+
+          @if (authService.isAdmin()) {
+            <button
+              type="button"
+              (click)="isFormOpen() ? closeProductForm() : openCreateForm()"
+              class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+            >
+              {{ isFormOpen() ? 'Zamknij formularz' : '+ Dodaj produkt' }}
+            </button>
+          }
+
           <button
             type="button"
             (click)="logout()"
@@ -45,10 +62,17 @@
         } @else {
           <button
             type="button"
-            (click)="toggleLoginPanel()"
+            (click)="openAuthPanel('login')"
             class="bg-gray-800 hover:bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
           >
-            {{ isLoginOpen() ? 'Zamknij logowanie' : 'Zaloguj admina' }}
+            Zaloguj się
+          </button>
+          <button
+            type="button"
+            (click)="openAuthPanel('register')"
+            class="bg-white hover:bg-gray-100 text-gray-800 border border-gray-300 text-sm font-medium px-4 py-2 rounded-lg transition"
+          >
+            Zarejestruj się
           </button>
         }
       </div>
@@ -150,23 +174,49 @@
               </span>
             </div>
 
-            <button
-              type="button"
-              [disabled]="isPlacingOrder()"
-              (click)="placeOrder()"
-              class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition"
-            >
-              {{ isPlacingOrder() ? 'Składanie zamówienia...' : 'Złóż zamówienie' }}
-            </button>
+            @if (authService.isLoggedIn()) {
+              <button
+                type="button"
+                [disabled]="isPlacingOrder()"
+                (click)="placeOrder()"
+                class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition"
+              >
+                {{ isPlacingOrder() ? 'Składanie zamówienia...' : 'Złóż zamówienie' }}
+              </button>
+            } @else {
+              <div class="flex flex-wrap items-center gap-2">
+                <span
+                  class="text-xs text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2 rounded-lg"
+                >
+                  Wymagane konto, aby złożyć zamówienie
+                </span>
+                <button
+                  type="button"
+                  (click)="openAuthPanel('login')"
+                  class="bg-gray-800 hover:bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+                >
+                  Zaloguj się
+                </button>
+                <button
+                  type="button"
+                  (click)="openAuthPanel('register')"
+                  class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+                >
+                  Załóż konto
+                </button>
+              </div>
+            }
           </div>
         }
       </div>
     }
 
-    @if (authService.isAdmin() && isOrdersOpen()) {
+    @if (authService.isLoggedIn() && isOrdersOpen()) {
       <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6 shadow-sm space-y-4">
         <div class="flex items-center justify-between border-b border-gray-100 pb-3">
-          <h2 class="text-lg font-bold text-gray-900">Zamówienia w bazie</h2>
+          <h2 class="text-lg font-bold text-gray-900">
+            {{ authService.isAdmin() ? 'Zamówienia w bazie' : 'Moje zamówienia' }}
+          </h2>
           <div class="flex items-center gap-2">
             <button
               type="button"
@@ -196,17 +246,26 @@
         @if (isLoadingOrders()) {
           <p class="text-sm text-gray-500 py-3">Ładowanie zamówień...</p>
         } @else if (orders().length === 0) {
-          <p class="text-sm text-gray-500 py-3">Brak złożonych zamówień w bazie.</p>
+          <p class="text-sm text-gray-500 py-3">
+            {{
+              authService.isAdmin()
+                ? 'Brak złożonych zamówień w bazie.'
+                : 'Nie masz jeszcze żadnych zamówień.'
+            }}
+          </p>
         } @else {
           <div class="space-y-3">
             @for (order of orders(); track order.id) {
               <div class="border border-gray-100 rounded-lg p-4 bg-gray-50/60 space-y-2">
                 <div class="flex flex-wrap items-center justify-between gap-2">
-                  <div class="flex items-center gap-2">
+                  <div class="flex flex-wrap items-center gap-2">
                     <span class="font-bold text-gray-900">Zamówienie #{{ order.id }}</span>
                     <span class="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
                       {{ order.status }}
                     </span>
+                    @if (authService.isAdmin()) {
+                      <span class="text-xs text-gray-600"> Klient: {{ order.customerEmail }} </span>
+                    }
                     <span class="text-xs text-gray-500">
                       {{ order.createdAt | date: 'dd.MM.yyyy HH:mm' }}
                     </span>
@@ -234,19 +293,47 @@
       </div>
     }
 
-    @if (!authService.isAdmin() && isLoginOpen()) {
+    @if (!authService.isLoggedIn() && isAuthOpen()) {
       <form
-        [formGroup]="loginForm"
-        (ngSubmit)="onLoginSubmit()"
+        [formGroup]="authForm"
+        (ngSubmit)="onAuthSubmit()"
         class="bg-white rounded-xl border border-gray-200 p-6 mb-6 shadow-sm space-y-4 max-w-md ml-auto"
       >
-        <h2 class="text-lg font-bold text-gray-900">Logowanie administratora</h2>
+        <div class="flex items-center justify-between gap-2 border-b border-gray-100 pb-3">
+          <h2 class="text-lg font-bold text-gray-900">
+            {{ authMode() === 'login' ? 'Logowanie' : 'Rejestracja konta' }}
+          </h2>
+          <div class="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+            <button
+              type="button"
+              (click)="setAuthMode('login')"
+              [class]="
+                authMode() === 'login'
+                  ? 'bg-white text-gray-900 text-xs font-semibold px-2.5 py-1 rounded-md shadow-xs transition'
+                  : 'text-gray-600 hover:text-gray-900 text-xs font-medium px-2.5 py-1 rounded-md transition'
+              "
+            >
+              Logowanie
+            </button>
+            <button
+              type="button"
+              (click)="setAuthMode('register')"
+              [class]="
+                authMode() === 'register'
+                  ? 'bg-white text-gray-900 text-xs font-semibold px-2.5 py-1 rounded-md shadow-xs transition'
+                  : 'text-gray-600 hover:text-gray-900 text-xs font-medium px-2.5 py-1 rounded-md transition'
+              "
+            >
+              Rejestracja
+            </button>
+          </div>
+        </div>
 
-        @if (loginError()) {
+        @if (authError()) {
           <div
             class="bg-red-50 border border-red-200 text-red-700 px-3.5 py-2.5 rounded-lg text-sm"
           >
-            {{ loginError() }}
+            {{ authError() }}
           </div>
         }
 
@@ -268,22 +355,37 @@
             placeholder="Wpisz hasło..."
             class="w-full rounded-lg border border-gray-300 px-3.5 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
           />
+          @if (
+            authMode() === 'register' &&
+            authForm.controls.password.touched &&
+            authForm.controls.password.invalid
+          ) {
+            <p class="text-xs text-red-600 mt-1">Hasło musi mieć co najmniej 6 znaków.</p>
+          }
         </div>
 
         <div class="flex justify-end gap-2 pt-1">
           <button
             type="button"
-            (click)="toggleLoginPanel()"
+            (click)="toggleAuthPanel()"
             class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition"
           >
             Anuluj
           </button>
           <button
             type="submit"
-            [disabled]="isLoggingIn()"
+            [disabled]="isSubmittingAuth()"
             class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
           >
-            {{ isLoggingIn() ? 'Logowanie...' : 'Zaloguj' }}
+            {{
+              isSubmittingAuth()
+                ? authMode() === 'login'
+                  ? 'Logowanie...'
+                  : 'Rejestrowanie...'
+                : authMode() === 'login'
+                  ? 'Zaloguj'
+                  : 'Zarejestruj'
+            }}
           </button>
         </div>
       </form>

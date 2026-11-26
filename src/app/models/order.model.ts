@@ -22,5 +22,6 @@ export interface OrderResponse {
   createdAt: string;
   totalAmount: number;
   userId: number;
+  customerEmail: string;
   items: OrderItemResponse[];
 }

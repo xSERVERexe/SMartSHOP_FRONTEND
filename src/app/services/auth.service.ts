@@ -2,7 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 
-export interface LoginResponse {
+export interface AuthSession {
   token: string;
   expiresAtUtc: string;
   email: string;
@@ -14,54 +14,70 @@ export interface LoginResponse {
 })
 export class AuthService {
   private http = inject(HttpClient);
-  private authUrl = 'http://localhost:5089/api/auth';
-  private readonly tokenKey = 'smartshop_admin_token';
-  private readonly emailKey = 'smartshop_admin_email';
+  private apiUrl = 'http://localhost:5089/api/auth';
 
-  private tokenSignal = signal<string | null>(this.readInitialToken());
-  private emailSignal = signal<string | null>(localStorage.getItem(this.emailKey));
+  private readonly tokenKey = 'smartshop_jwt_token';
+  private readonly emailKey = 'smartshop_user_email';
+  private readonly roleKey = 'smartshop_user_role';
+  private readonly expiresKey = 'smartshop_jwt_expires';
 
-  token = this.tokenSignal.asReadonly();
-  adminEmail = this.emailSignal.asReadonly();
-  isAdmin = computed<boolean>(() => Boolean(this.tokenSignal()));
+  token = signal<string | null>(this.readValidToken());
+  userEmail = signal<string | null>(this.readValidToken() ? localStorage.getItem(this.emailKey) : null);
+  userRole = signal<string | null>(this.readValidToken() ? localStorage.getItem(this.roleKey) : null);
 
-  private readInitialToken(): string | null {
-    const rawToken = localStorage.getItem(this.tokenKey);
-    const expiresAt = localStorage.getItem('smartshop_admin_expires');
+  isLoggedIn = computed<boolean>(() => Boolean(this.token()));
+  isAdmin = computed<boolean>(() => this.isLoggedIn() && this.userRole() === 'Admin');
 
-    if (!rawToken) {
-      return null;
-    }
-
-    if (expiresAt && Date.parse(expiresAt) <= Date.now()) {
-      this.clearStorage();
-      return null;
-    }
-
-    return rawToken;
+  login(email: string, password: string): Observable<AuthSession> {
+    return this.http
+      .post<AuthSession>(`${this.apiUrl}/login`, { email, password })
+      .pipe(tap((res) => this.saveSession(res)));
   }
 
-  private clearStorage(): void {
-    localStorage.removeItem(this.tokenKey);
-    localStorage.removeItem(this.emailKey);
-    localStorage.removeItem('smartshop_admin_expires');
-  }
-
-  login(email: string, password: string): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.authUrl}/login`, { email, password }).pipe(
-      tap((res) => {
-        localStorage.setItem(this.tokenKey, res.token);
-        localStorage.setItem(this.emailKey, res.email);
-        localStorage.setItem('smartshop_admin_expires', res.expiresAtUtc);
-        this.tokenSignal.set(res.token);
-        this.emailSignal.set(res.email);
-      }),
-    );
+  register(email: string, password: string): Observable<AuthSession> {
+    return this.http
+      .post<AuthSession>(`${this.apiUrl}/register`, { email, password })
+      .pipe(tap((res) => this.saveSession(res)));
   }
 
   logout(): void {
-    this.clearStorage();
-    this.tokenSignal.set(null);
-    this.emailSignal.set(null);
+    localStorage.removeItem(this.tokenKey);
+    localStorage.removeItem(this.emailKey);
+    localStorage.removeItem(this.roleKey);
+    localStorage.removeItem(this.expiresKey);
+    this.token.set(null);
+    this.userEmail.set(null);
+    this.userRole.set(null);
+  }
+
+  private saveSession(res: AuthSession): void {
+    localStorage.setItem(this.tokenKey, res.token);
+    localStorage.setItem(this.emailKey, res.email);
+    localStorage.setItem(this.roleKey, res.role);
+    localStorage.setItem(this.expiresKey, res.expiresAtUtc);
+    this.token.set(res.token);
+    this.userEmail.set(res.email);
+    this.userRole.set(res.role);
+  }
+
+  private readValidToken(): string | null {
+    const token = localStorage.getItem(this.tokenKey);
+    if (!token) {
+      return null;
+    }
+
+    const expiresRaw = localStorage.getItem(this.expiresKey);
+    if (expiresRaw) {
+      const expiresMs = Date.parse(expiresRaw);
+      if (!Number.isNaN(expiresMs) && expiresMs <= Date.now()) {
+        localStorage.removeItem(this.tokenKey);
+        localStorage.removeItem(this.emailKey);
+        localStorage.removeItem(this.roleKey);
+        localStorage.removeItem(this.expiresKey);
+        return null;
+      }
+    }
+
+    return token;
   }
 }
