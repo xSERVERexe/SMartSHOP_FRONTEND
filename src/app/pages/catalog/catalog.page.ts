@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ProductService } from '../../services/product.service';
 import { CategoryService } from '../../services/category.service';
@@ -7,10 +7,11 @@ import { AuthService } from '../../services/auth.service';
 import { CartService } from '../../services/cart.service';
 import { CreateProductRequest, Product } from '../../models/product.model';
 import { Category } from '../../models/category.model';
+import { PlnCurrencyPipe } from '../../pipes/pln-currency.pipe';
 
 @Component({
   selector: 'app-catalog-page',
-  imports: [CurrencyPipe, ReactiveFormsModule],
+  imports: [RouterLink, ReactiveFormsModule, PlnCurrencyPipe],
   templateUrl: './catalog.page.html',
 })
 export class CatalogPage implements OnInit {

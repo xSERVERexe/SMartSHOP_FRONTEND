@@ -1,13 +1,14 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { OrderService } from '../../services/order.service';
 import { AuthService } from '../../services/auth.service';
 import { OrderResponse } from '../../models/order.model';
+import { PlnCurrencyPipe } from '../../pipes/pln-currency.pipe';
 
 @Component({
   selector: 'app-orders-page',
-  imports: [CurrencyPipe, DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, PlnCurrencyPipe],
   templateUrl: './orders.page.html',
 })
 export class OrdersPage implements OnInit {

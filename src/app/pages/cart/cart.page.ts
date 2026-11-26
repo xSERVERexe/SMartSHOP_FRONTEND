@@ -1,13 +1,13 @@
 import { Component, inject, signal } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { CartService } from '../../services/cart.service';
 import { AuthService } from '../../services/auth.service';
 import { OrderService } from '../../services/order.service';
+import { PlnCurrencyPipe } from '../../pipes/pln-currency.pipe';
 
 @Component({
   selector: 'app-cart-page',
-  imports: [CurrencyPipe, RouterLink],
+  imports: [RouterLink, PlnCurrencyPipe],
   templateUrl: './cart.page.html',
 })
 export class CartPage {

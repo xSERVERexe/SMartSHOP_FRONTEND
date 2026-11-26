@@ -41,9 +41,7 @@
           >
             <div>
               <p class="text-sm font-medium text-white">{{ item.product.name }}</p>
-              <p class="text-xs text-zinc-500 mt-0.5">
-                {{ item.product.price | currency: 'PLN' : 'symbol' : '1.2-2' }} / szt.
-              </p>
+              <p class="text-xs text-zinc-500 mt-0.5">{{ item.product.price | pln }} / szt.</p>
             </div>
 
             <div class="flex items-center justify-between sm:justify-end gap-5">
@@ -66,7 +64,7 @@
               </div>
 
               <span class="text-sm font-semibold text-zinc-100 min-w-[92px] text-right">
-                {{ item.product.price * item.quantity | currency: 'PLN' : 'symbol' : '1.2-2' }}
+                {{ item.product.price * item.quantity | pln }}
               </span>
 
               <button
@@ -93,9 +91,7 @@
             class="flex justify-between text-base font-semibold text-white pt-3 border-t border-zinc-900"
           >
             <span>Razem</span>
-            <span class="text-cyan-400">{{
-              cartService.totalAmount() | currency: 'PLN' : 'symbol' : '1.2-2'
-            }}</span>
+            <span class="text-cyan-400">{{ cartService.totalAmount() | pln }}</span>
           </div>
         </div>
 

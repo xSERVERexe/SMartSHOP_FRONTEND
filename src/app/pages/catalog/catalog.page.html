@@ -4,7 +4,7 @@
   >
     <div class="border-l-2 border-cyan-400 pl-4 cursor-default">
       <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-white">Katalog</h1>
-      <p class="text-sm text-zinc-400 mt-1">Wyselekcjonowana elektronika w czystej formie.</p>
+      <p class="text-sm text-zinc-400 mt-1">SMart SHOP - mądry wybór</p>
     </div>
 
     @if (authService.isAdmin()) {
@@ -169,9 +169,11 @@
             </div>
 
             <h2
-              class="text-base font-medium text-white mt-1.5 group-hover:text-cyan-200 transition cursor-default"
+              class="text-base font-medium text-white mt-1.5 group-hover:text-cyan-200 transition"
             >
-              {{ product.name }}
+              <a [routerLink]="['/product', product.id]" class="hover:text-cyan-300 transition">
+                {{ product.name }}
+              </a>
             </h2>
             <p class="text-xs text-zinc-400 mt-1.5 leading-relaxed line-clamp-2 cursor-default">
               {{ product.description }}
@@ -180,7 +182,7 @@
 
           <div class="mt-4 flex items-center justify-between">
             <span class="text-sm font-semibold text-zinc-100 cursor-default">
-              {{ product.price | currency: 'PLN' : 'symbol' : '1.2-2' }}
+              {{ product.price | pln }}
             </span>
             <button
               type="button"

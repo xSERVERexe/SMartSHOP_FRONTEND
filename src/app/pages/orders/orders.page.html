@@ -67,7 +67,7 @@
             </div>
 
             <span class="text-sm font-semibold text-cyan-400">
-              {{ order.totalAmount | currency: 'PLN' : 'symbol' : '1.2-2' }}
+              {{ order.totalAmount | pln }}
             </span>
           </div>
 
@@ -78,9 +78,7 @@
                   >{{ item.productName }}
                   <span class="text-zinc-600">× {{ item.quantity }}</span></span
                 >
-                <span class="text-zinc-300">{{
-                  item.lineTotal | currency: 'PLN' : 'symbol' : '1.2-2'
-                }}</span>
+                <span class="text-zinc-300">{{ item.lineTotal | pln }}</span>
               </li>
             }
           </ul>
