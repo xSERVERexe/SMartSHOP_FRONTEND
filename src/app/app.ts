@@ -96,7 +96,7 @@ export class App implements OnInit {
   ngOnInit(): void {
     this.loadCategories();
     this.loadProducts();
-    if (this.authService.isAdmin()) {
+    if (this.authService.isLoggedIn()) {
       this.loadOrders(false);
     }
   }
@@ -132,7 +132,7 @@ export class App implements OnInit {
   }
 
   loadOrders(showSpinner = true): void {
-    if (!this.authService.isAdmin()) {
+    if (!this.authService.isLoggedIn()) {
       return;
     }
 
@@ -141,7 +141,11 @@ export class App implements OnInit {
     }
     this.ordersError.set(null);
 
-    this.orderService.getOrders().subscribe({
+    const request$ = this.authService.isAdmin()
+      ? this.orderService.getOrders()
+      : this.orderService.getMyOrders();
+
+    request$.subscribe({
       next: (data) => {
         this.orders.set(data);
         this.isLoadingOrders.set(false);
@@ -155,7 +159,7 @@ export class App implements OnInit {
   }
 
   toggleOrdersPanel(): void {
-    if (!this.authService.isAdmin()) {
+    if (!this.authService.isLoggedIn()) {
       this.openAuthPanel('login');
       return;
     }
@@ -210,7 +214,7 @@ export class App implements OnInit {
           `Złożono zamówienie #${createdOrder.id} (status: ${createdOrder.status}, suma: ${createdOrder.totalAmount.toFixed(2)} PLN).`,
         );
 
-        if (this.authService.isAdmin()) {
+        if (this.authService.isLoggedIn()) {
           this.isOrdersOpen.set(true);
           this.loadOrders(false);
         }
@@ -275,8 +279,6 @@ export class App implements OnInit {
 
         if (res.role === 'Admin') {
           this.successMessage.set(`Zalogowano jako administrator (${res.email}).`);
-          this.isOrdersOpen.set(true);
-          this.loadOrders();
         } else {
           this.successMessage.set(
             isRegister
@@ -284,6 +286,9 @@ export class App implements OnInit {
               : `Zalogowano jako ${res.email}.`,
           );
         }
+
+        this.isOrdersOpen.set(true);
+        this.loadOrders();
       },
       error: (err) => {
         console.error('Błąd autoryzacji:', err);
