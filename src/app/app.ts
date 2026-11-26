@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ProductService } from './services/product.service';
 import { CategoryService } from './services/category.service';
 import { AuthService } from './services/auth.service';
+import { CartService } from './services/cart.service';
 import { CreateProductRequest, Product } from './models/product.model';
 import { Category } from './models/category.model';
 
@@ -18,11 +19,14 @@ export class App implements OnInit {
   private categoryService = inject(CategoryService);
   private fb = inject(FormBuilder);
   authService = inject(AuthService);
+  cartService = inject(CartService);
 
   products = signal<Product[]>([]);
   categories = signal<Category[]>([]);
   isLoading = signal<boolean>(true);
   error = signal<string | null>(null);
+
+  isCartOpen = signal<boolean>(false);
 
   isLoginOpen = signal<boolean>(false);
   isLoggingIn = signal<boolean>(false);
@@ -111,6 +115,15 @@ export class App implements OnInit {
         this.isLoading.set(false);
       },
     });
+  }
+
+  toggleCart(): void {
+    this.isCartOpen.update((open) => !open);
+  }
+
+  addToCart(product: Product): void {
+    this.cartService.addProduct(product);
+    this.successMessage.set(`Dodano do koszyka: "${product.name}".`);
   }
 
   toggleLoginPanel(): void {
@@ -276,6 +289,7 @@ export class App implements OnInit {
         if (this.editingProductId() === product.id) {
           this.closeProductForm();
         }
+        this.cartService.removeItem(product.id);
         this.products.update((list) => list.filter((p) => p.id !== product.id));
         this.successMessage.set(`Usunięto produkt: "${product.name}".`);
       },

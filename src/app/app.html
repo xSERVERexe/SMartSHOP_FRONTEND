@@ -4,6 +4,17 @@
       <h1 class="text-3xl font-bold text-gray-900">SMart SHOP</h1>
 
       <div class="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          (click)="toggleCart()"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition flex items-center gap-2"
+        >
+          <span>Koszyk ({{ cartService.totalCount() }})</span>
+          <span class="bg-indigo-800/70 text-indigo-100 text-xs px-2 py-0.5 rounded-md">
+            {{ cartService.totalAmount() | currency: 'PLN' : 'symbol' : '1.2-2' }}
+          </span>
+        </button>
+
         @if (authService.isAdmin()) {
           <span
             class="text-xs font-medium bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-full"
@@ -35,6 +46,94 @@
         }
       </div>
     </div>
+
+    @if (isCartOpen()) {
+      <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6 shadow-sm space-y-4">
+        <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+          <h2 class="text-lg font-bold text-gray-900">
+            Twój koszyk ({{ cartService.totalCount() }} szt.)
+          </h2>
+          <div class="flex items-center gap-2">
+            @if (cartService.items().length > 0) {
+              <button
+                type="button"
+                (click)="cartService.clearCart()"
+                class="text-xs font-medium text-red-600 hover:text-red-800 px-2.5 py-1 rounded hover:bg-red-50 transition"
+              >
+                Wyczyść koszyk
+              </button>
+            }
+            <button
+              type="button"
+              (click)="toggleCart()"
+              class="text-xs font-medium text-gray-600 hover:text-gray-900 px-2.5 py-1 rounded hover:bg-gray-100 transition"
+            >
+              Zamknij
+            </button>
+          </div>
+        </div>
+
+        @if (cartService.items().length === 0) {
+          <p class="text-sm text-gray-500 py-4 text-center">
+            Koszyk jest pusty. Dodaj produkty z listy poniżej.
+          </p>
+        } @else {
+          <div class="divide-y divide-gray-100">
+            @for (item of cartService.items(); track item.product.id) {
+              <div class="py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <p class="font-semibold text-gray-900">{{ item.product.name }}</p>
+                  <p class="text-xs text-gray-500">
+                    Cena jedn.: {{ item.product.price | currency: 'PLN' : 'symbol' : '1.2-2' }}
+                  </p>
+                </div>
+
+                <div class="flex items-center justify-between sm:justify-end gap-4">
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      (click)="cartService.decrement(item.product.id)"
+                      class="w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-sm flex items-center justify-center transition"
+                    >
+                      -
+                    </button>
+                    <span class="w-6 text-center text-sm font-semibold text-gray-900">
+                      {{ item.quantity }}
+                    </span>
+                    <button
+                      type="button"
+                      (click)="cartService.increment(item.product.id)"
+                      class="w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-sm flex items-center justify-center transition"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <span class="text-sm font-bold text-gray-900 min-w-[95px] text-right">
+                    {{ item.product.price * item.quantity | currency: 'PLN' : 'symbol' : '1.2-2' }}
+                  </span>
+
+                  <button
+                    type="button"
+                    (click)="cartService.removeItem(item.product.id)"
+                    class="text-xs font-medium text-red-600 hover:text-red-800 px-2 py-1 rounded hover:bg-red-50 transition"
+                  >
+                    Usuń
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="pt-4 border-t border-gray-200 flex items-center justify-between">
+            <span class="text-base font-semibold text-gray-700">Razem do zapłaty:</span>
+            <span class="text-xl font-bold text-gray-900">
+              {{ cartService.totalAmount() | currency: 'PLN' : 'symbol' : '1.2-2' }}
+            </span>
+          </div>
+        }
+      </div>
+    }
 
     @if (!authService.isAdmin() && isLoginOpen()) {
       <form
@@ -310,6 +409,7 @@
               </span>
               <button
                 type="button"
+                (click)="addToCart(product)"
                 class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
               >
                 Do koszyka
